@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>水火箭 · 冲量仿真实验室</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #2563eb; --blue2: #1d4ed8; --green: #16a34a; --orange: #ea580c;
+    --red: #dc2626; --bg: #eef2f7; --card: #ffffff; --text: #1f2937;
+    --muted: #6b7280; --line: #e5e7eb;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px; margin: 12px 12px 0;
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    color: #fff; border-radius: 12px;
+  }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: .5px; }
+  header .sub { font-size: 12px; opacity: .88; }
+  header .spacer { flex: 1; }
+  .hbtn {
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4);
+    color: #fff; padding: 6px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .hbtn:hover { background: rgba(255,255,255,.3); }
+  .hbtn.ai {
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    border-color: #a78bfa;
+  }
+
+  #app {
+    display: grid; grid-template-columns: 300px 1fr 330px;
+    gap: 12px; padding: 12px; max-width: 1500px; margin: 0 auto; align-items: start;
+  }
+  @media (max-width: 1150px) { #app { grid-template-columns: 1fr; } }
+  .left, .center, .right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+  .card { background: var(--card); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 14px; }
+  .card h3 {
+    font-size: 14px; margin-bottom: 10px; color: var(--blue2);
+    border-left: 3px solid var(--blue); padding-left: 8px;
+  }
+
+  .ctrl { margin-bottom: 12px; }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .ctrl label .val { color: var(--blue); font-weight: 600; }
+  .ctrl input[type=range] { width: 100%; accent-color: var(--blue); }
+
+  .btn { border: none; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; color: #fff; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--orange); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-green { background: var(--green); }
+  .btn-green:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-gray { background: #9ca3af; }
+  .btn-gray:hover:not(:disabled) { filter: brightness(1.05); }
+  .btn-blue { background: var(--blue); }
+
+  .ctrl-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  #warnP { font-size: 12px; color: var(--red); margin-top: 6px; display: none; }
+
+  .mode-tabs { display: flex; gap: 8px; }
+  .mode-tab {
+    flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--line);
+    background: #fff; cursor: pointer; font-size: 13px; text-align: center;
+  }
+  .mode-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  #mainCv {
+    width: 100%; height: 400px; display: block; border-radius: 8px;
+    background: linear-gradient(#bfdbfe, #dbeafe 55%, #eff6ff);
+    border: 1px solid var(--line);
+  }
+  .chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .chip {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+    padding: 6px 12px; font-size: 13px;
+  }
+  .chip b { color: var(--blue2); }
+  select { padding: 6px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: #fff; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+  .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dbox { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; }
+  .dbox .k { font-size: 12px; color: var(--muted); }
+  .dbox .v { font-size: 18px; font-weight: 700; color: var(--blue2); }
+  .dbox .v.small { font-size: 14px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+  .tab {
+    flex: 1; padding: 6px; border: 1px solid var(--line); border-radius: 6px;
+    background: #fff; cursor: pointer; font-size: 12px; text-align: center;
+  }
+  .tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  #chartCv { width: 100%; height: 215px; display: block; }
+
+  .rec-wrap { max-height: 190px; overflow: auto; }
+  table.rec { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.rec th, table.rec td { border: 1px solid var(--line); padding: 4px 4px; text-align: center; }
+  table.rec th { background: #f1f5f9; color: #374151; }
+  table.rec tr.new { background: #eff6ff; }
+
+  .step {
+    display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px;
+    border-radius: 8px; font-size: 13px; border: 1px solid var(--line); margin-bottom: 6px;
+  }
+  .step .n {
+    width: 20px; height: 20px; border-radius: 50%; background: #e5e7eb; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; flex: none; margin-top: 1px;
+  }
+  .step.done .n { background: var(--green); color: #fff; }
+  .step.active { background: #eff6ff; border-color: #bfdbfe; }
+  .step.active .n { background: var(--blue); color: #fff; }
+  .step .t { flex: 1; line-height: 1.5; }
+  .step.done .t { color: var(--muted); }
+  #stepBarWrap { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+  #stepBar { height: 100%; background: var(--green); width: 0%; transition: width .3s; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,.5); display: none;
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; max-width: 720px; width: 92%;
+    max-height: 86vh; overflow: auto; padding: 22px; position: relative;
+  }
+  .modal h2 { font-size: 18px; color: var(--blue2); margin-bottom: 12px; }
+  .modal h4 { margin: 14px 0 6px; color: #111827; }
+  .modal p { font-size: 14px; line-height: 1.9; color: #374151; margin-bottom: 8px; }
+  .modal li { font-size: 14px; line-height: 1.9; color: #374151; margin-left: 20px; }
+  .formula {
+    background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 12px; font-family: Georgia, "Times New Roman", serif; font-size: 16px;
+    text-align: center; color: var(--blue2); margin: 8px 0;
+  }
+  .modal .mclose {
+    position: absolute; top: 12px; right: 12px; background: #e5e7eb; border: none;
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px;
+  }
+  .mbtn { margin-top: 14px; }
+
+  /* ---- AI 实验助手 ---- */
+  .ai-badge {
+    display: inline-block; font-size: 10px; vertical-align: middle;
+    background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff;
+    padding: 1px 7px; border-radius: 10px; margin-left: 6px; letter-spacing: .5px;
+  }
+  .ai-out {
+    background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px;
+    padding: 10px; font-size: 13px; line-height: 1.7; margin-top: 8px;
+    min-height: 30px; white-space: pre-wrap;
+  }
+  .ai-out .t { font-weight: 600; color: #6d28d9; }
+  .ai-out small { color: var(--muted); display: block; margin-top: 6px; }
+  .pr-tag {
+    display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px;
+    margin-right: 6px; color: #fff; background: #9ca3af;
+  }
+  .pr-tag.ok { background: var(--green); }
+  .pr-tag.bad { background: var(--orange); }
+  .ai-sect { margin-top: 12px; }
+  .ai-sect:first-child { margin-top: 0; }
+  .ai-sect h4 { margin: 0 0 6px; color: #6d28d9; font-size: 14px; }
+  .ai-tip {
+    background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; color: #0369a1; line-height: 1.6; margin-bottom: 8px;
+  }
+  footer {
+    text-align: center; font-size: 12px; color: var(--muted);
+    padding: 6px 0 16px; max-width: 1500px; margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>水火箭 · 冲量仿真实验室</h1>
+  <span class="sub">跨学科公开课 · 物理 × 技术与工程</span>
+  <div class="spacer"></div>
+  <button class="hbtn ai" id="btnAI">AI 探索</button>
+  <button class="hbtn" id="btnHelp">使用说明</button>
+  <button class="hbtn" id="btnTheory">理论知识</button>
+</header>
+
+<div id="app">
+  <!-- ============ 左侧：参数与步骤 ============ -->
+  <div class="left">
+    <div class="card">
+      <h3>实验参数</h3>
+      <div class="ctrl">
+        <label>水量 <span class="val" id="valWater">500 mL</span></label>
+        <input type="range" id="slWater" min="100" max="1200" step="50" value="500">
+      </div>
+      <div class="ctrl">
+        <label>打气次数 <span class="val" id="valPump">8 次</span></label>
+        <input type="range" id="slPump" min="0" max="15" step="1" value="8">
+      </div>
+      <div class="ctrl">
+        <label>瓶身质量 <span class="val" id="valMass">80 g</span></label>
+        <input type="range" id="slMass" min="40" max="200" step="10" value="80">
+      </div>
+      <div class="ctrl">
+        <label>喷嘴直径 <span class="val" id="valNozzle">9.0 mm</span></label>
+        <input type="range" id="slNozzle" min="5" max="15" step="0.5" value="9">
+      </div>
+      <div class="ctrl">
+        <label>发射效率 <span class="val" id="valEff">0.65</span></label>
+        <input type="range" id="slEff" min="0.4" max="1" step="0.05" value="0.65">
+      </div>
+      <canvas id="gaugeCv" width="260" height="120" style="width:100%;height:110px;display:block;margin:4px 0 8px"></canvas>
+      <div class="ctrl-row">
+        <button class="btn btn-primary" id="btnPump">充气 +1</button>
+        <button class="btn btn-gray" id="btnVent">泄压</button>
+      </div>
+      <div id="warnP">气压过高，请留意安全！</div>
+      <div class="hint">提示：每次打气约增加 0.05 MPa（0.5 atm）气压。</div>
+    </div>
+
+    <div class="card">
+      <h3>AI 实验助手 <span class="ai-badge">AI</span></h3>
+      <div class="ai-tip">AI 助手会基于你积累的实验记录进行"机器学习"，帮你看数据、做预测、寻最优，还可教你像工程师一样提问。</div>
+      <div class="ctrl-row" style="margin-top:0">
+        <button class="btn btn-blue" id="btnAiPredict" style="flex:1">预测本次冲量</button>
+        <button class="btn btn-blue" id="btnAiAnalyze" style="flex:1">智能分析数据</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn btn-blue" id="btnAiOpt" style="flex:1">AI 寻优最佳参数</button>
+        <button class="btn btn-gray" id="btnAiPrompt" style="flex:1">学用提示词提问</button>
+      </div>
+      <div id="aiOut" class="ai-out">AI 已就绪。请多完成几次实验后，点击上方按钮让我分析。<br><small>提示：实验记录越多，AI 的分析与预测越准（这正是机器学习的原理）。</small></div>
+    </div>
+
+    <div class="card">
+      <h3>实验步骤引导</h3>
+      <div id="stepBarWrap"><div id="stepBar"></div></div>
+      <div id="stepList"></div>
+      <div id="stepHint" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- ============ 中间：实验区 ============ -->
+  <div class="center">
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="modeHorizontal">水平轨道冲量实验</button>
+      <button class="mode-tab" id="modeVertical">竖直发射挑战</button>
+    </div>
+    <div class="card">
+      <canvas id="mainCv"></canvas>
+      <div class="ctrl-row">
+        <button class="btn btn-green" id="btnLaunch">发射</button>
+        <button class="btn btn-gray" id="btnReset">重置</button>
+        <span style="font-size:13px;color:var(--muted)">动画速度</span>
+        <select id="selSpeed">
+          <option value="0.06">超慢放 ×0.06</option>
+          <option value="0.15" selected>慢放 ×0.15</option>
+          <option value="0.35">中速 ×0.35</option>
+          <option value="1">正常 ×1</option>
+        </select>
+      </div>
+      <div class="chips">
+        <div class="chip">时间 <b id="liveT">0.00 s</b></div>
+        <div class="chip">速度 <b id="liveV">0.0 m/s</b></div>
+        <div class="chip">推力 <b id="liveF">0.0 N</b></div>
+        <div class="chip">剩余水量 <b id="liveWater">500 mL</b></div>
+      </div>
+      <div class="hint">安全提示：模拟发射方向请勿对人；本软件为教学仿真，无实际危险。</div>
+    </div>
+  </div>
+
+  <!-- ============ 右侧：数据、图表、记录 ============ -->
+  <div class="right">
+    <div class="card">
+      <h3>实验数据</h3>
+      <div class="data-grid">
+        <div class="dbox"><div class="k">末速度 v</div><div class="v" id="dV">--</div></div>
+        <div class="dbox"><div class="k">喷水时间 Δt</div><div class="v small" id="dDt">--</div></div>
+        <div class="dbox"><div class="k">冲量 I = m·v</div><div class="v" id="dI">--</div></div>
+        <div class="dbox"><div class="k">平均反冲力 F̄ = I/Δt</div><div class="v small" id="dFavg">--</div></div>
+        <div class="dbox" id="dHDiv" style="grid-column:1/-1;display:none">
+          <div class="k">最大高度 h</div><div class="v" id="dH">--</div>
+        </div>
+      </div>
+      <div id="dNote" style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7">
+        点击"发射"开始实验，数据将自动记录到下方表格。
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>图表分析</h3>
+      <div class="tabs">
+        <button class="tab active" data-chart="vt">v–t 图</button>
+        <button class="tab" data-chart="ft">F–t 图</button>
+        <button class="tab" data-chart="bars">对比柱状图</button>
+      </div>
+      <canvas id="chartCv"></canvas>
+    </div>
+
+    <div class="card">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;border:none;padding:0">
+        实验记录
+        <button class="btn btn-gray" id="btnClearRec" style="padding:3px 10px;font-size:12px">清空</button>
+      </h3>
+      <div class="rec-wrap">
+        <table class="rec">
+          <thead><tr><th>#</th><th>水量<br>mL</th><th>打气<br>次</th><th>气压<br>atm</th><th>v<br>m/s</th><th>I<br>N·s</th><th>F̄<br>N</th><th>h<br>m</th></tr></thead>
+          <tbody id="recBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>基于简化物理模型的教学仿真软件，数据供课堂参考，建议配合实物实验使用。支持 Windows / macOS 浏览器离线运行。</footer>
+
+<!-- ============ 理论知识弹窗 ============ -->
+<div class="modal-overlay" id="modalTheory">
+  <div class="modal">
+    <button class="mclose" data-close="modalTheory">关闭</button>
+    <h2>理论知识：反冲与冲量</h2>
+
+    <h4>1. 反冲现象</h4>
+    <p>当一个物体向某一方向喷出（或抛出）一部分物质时，由于力的作用是相互的，物体的其余部分会受到相反方向的作用力而向相反方向运动，这种现象叫做<strong>反冲</strong>。例如：火箭喷出燃气升空、乌贼向后喷水前进、烟花升空。</p>
+
+    <h4>2. 力的作用是相互的（牛顿第三定律）</h4>
+    <p>力的作用是相互的：水火箭向后喷出水时，瓶身对水施加向后的力，同时水对瓶身施加大小相等、方向相反的力，正是这个反作用力推动火箭前进。</p>
+
+    <h4>3. 冲量与动量定理</h4>
+    <p>力对物体作用一段时间，力的作用效果不仅与力的大小有关，还与作用时间有关。为此引入冲量：</p>
+    <div class="formula">冲量 I = F · Δt&nbsp;&nbsp;&nbsp;（单位：N·s）</div>
+    <p>物体动量的变化等于它所受合外力的冲量，这就是动量定理：</p>
+    <div class="formula">I = F · Δt = Δp = m·v₂ − m·v₁</div>
+    <p>在本实验中，水火箭从静止开始水平运动（初速度 v₁ = 0），喷水结束后的速度为 v，火箭质量为 m，则：</p>
+    <div class="formula">火箭获得的冲量 I = m · v</div>
+
+    <h4>4. 水火箭的工作原理与能量转化</h4>
+    <p>给瓶内打气时，人对气体做功，转化为压缩空气的内能（气压能）；发射时压缩空气对水做功，使水高速喷出；水高速喷出产生反冲力推动火箭升空。能量转化链：</p>
+    <div class="formula">打气做功 → 压缩空气内能 → 水的动能 → 火箭动能 → 重力势能</div>
+    <p>影响发射效果的参数主要有：<strong>水量</strong>（过多则水推不出去，过少则喷射时间太短）、<strong>气压（打气次数）</strong>、<strong>喷嘴直径</strong>和<strong>结构对称性</strong>。</p>
+
+    <h4>5. 为什么火箭获得的冲量小于推力的总冲量？</h4>
+    <p>推力随时间变化的 F–t 曲线下方面积等于反冲的<strong>总冲量</strong>。由于动量守恒，总冲量一部分转化为火箭的动量，另一部分被高速喷出的水带走。因此用光电门测出的火箭速度算得的 I = m·v 是"火箭获得的部分冲量"。</p>
+
+    <h4>6. 拓展：验证动量守恒</h4>
+    <p>将瓶身做成单摆，发射后测出摆动的最大高度 h，由 v = √(2gh) 算出瓶速；再测出喷出的水的速度，比较 m<sub>瓶</sub>·v<sub>瓶</sub> 与 m<sub>水</sub>·v<sub>水</sub>，验证反冲过程中系统动量守恒。</p>
+
+    <h4>7. 应用与安全</h4>
+    <p>反冲在生活中有广泛的应用（火箭、喷气式飞机、灭火水枪等），也有需要防范的地方（枪械后坐力）。做水火箭实物实验时，务必在开阔场地发射，发射方向严禁对人。</p>
+  </div>
+</div>
+
+<!-- ============ 使用说明弹窗 ============ -->
+<div class="modal-overlay" id="modalHelp">
+  <div class="modal">
+    <button class="mclose" data-close="modalHelp">关闭</button>
+    <h2>使用说明</h2>
+    <h4>操作流程</h4>
+    <ol>
+      <li>选择实验模式：水平轨道冲量实验（测量冲量）或竖直发射挑战（测量高度）。</li>
+      <li>在左侧调节实验参数：水量、打气次数、瓶身质量、喷嘴直径、发射效率。</li>
+      <li>点击"充气 +1"（或拖动打气次数滑块）给水火箭充气，观察气压表变化。</li>
+      <li>点击"发射"观察火箭运动，右侧自动记录末速度 v、喷水时间 Δt、冲量 I 等数据。</li>
+      <li>在图表区切换 v–t 图、F–t 图、对比柱状图分析规律。</li>
+      <li>按左侧"实验步骤引导"完成整个实验流程（定量探究建议至少 3 组数据）。</li>
+    </ol>
+    <h4>实验小贴士</h4>
+    <ul>
+      <li>建议先固定水量（如 500 mL），改变打气次数，观察冲量如何变化。</li>
+      <li>再固定打气次数，改变水量，找到冲量或高度最大的"最佳水量"。</li>
+      <li>"发射效率"用于模拟实际发射中的各种损耗（喷嘴损失、水花飞溅等），数值越大越接近理想情况。</li>
+    </ul>
+    <h4>运行说明</h4>
+    <p>本软件为单文件网页应用，用浏览器（Chrome / Edge / Safari / Firefox）直接打开即可运行，无需安装、完全离线，兼容 Windows 与 macOS。实验记录保存在本地浏览器中，点击"清空"可重置。</p>
+  </div>
+</div>
+
+<!-- ============ AI 探索弹窗 ============ -->
+<div class="modal-overlay" id="modalAI">
+  <div class="modal">
+    <button class="mclose" data-close="modalAI">关闭</button>
+    <h2>AI 探索 · 让计算机会学习</h2>
+
+    <div class="ai-sect">
+      <h4>1. 什么是机器学习？</h4>
+      <p>机器学习就是让计算机"从数据中自动学习规律"，用学到的规律去<strong>预测</strong>或<strong>做决策</strong>，而不是靠人写死每一步规则。想象一下：你每次做水火箭实验，记录下"打气次数、水量 → 冲量"。你的实验记录成百上千条之后，计算机就能从中找出"水量多少、气压多少时冲量最大"，并且预测新参数下大概能飞多高——这，就是机器学习。</p>
+      <p>用到的基本"配方"是：<strong>数据 → 算法（模型）→ 预测/决策</strong>。你点击左侧"AI 实验助手"，AI 就是基于你的实验数据按这个配方工作的。</p>
+    </div>
+
+    <div class="ai-sect">
+      <h4>2. 深度学习与神经网络</h4>
+      <p><strong>深度学习</strong>是机器学习的一个子集，它用很多层"人工神经元"组成的大型网络（神经网络）来处理复杂问题，比如识别照片里的物体、听懂你说的话。可以这样理解：网络的每一层都像在"一层层提取特征"——就像火箭工程师逐项分析"水量、气压、质量、喷嘴直径"如何共同影响飞行一样，神经网络的每一层都在学习更抽象的组合规律。</p>
+    </div>
+
+    <div class="ai-sect">
+      <h4>3. 自然语言处理（NLP）</h4>
+      <p><strong>自然语言处理</strong>让计算机能够理解人类的文字和语言，例如语音助手、机器翻译、作文批改。在本软件中，学会向下方的"AI 实验助手"描述清楚问题（提示词 Prompt），其实就是跟 NLP 打交道的开始。</p>
+    </div>
+
+    <div class="ai-sect">
+      <h4>4. 提示词工程：像工程师一样提问</h4>
+      <p>用好 AI 的第一步是"把问题问清楚"。好的提示词一般包含：<strong>角色 + 任务 + 依据 + 想要的输出</strong>。</p>
+      <div class="formula">例：你是火箭工程师，根据下面 5 组实验记录，找出使冲量最大的水量，并说明理由。</div>
+      <p>学习提示词工程，是培养"与 AI 协作"这一未来核心素养的重要一步。</p>
+    </div>
+
+    <div class="ai-sect">
+      <h4>5. AI 在水火箭/航天中的应用案例</h4>
+      <ul>
+        <li><strong>仿真加速与设计优化</strong>：SpaceX、NASA 用机器学习模型近似复杂流体仿真，快速试算上千种火箭参数组合，自动找到更优设计（这正是本软件"AI 寻优最佳参数"想让你体验的核心思想）。</li>
+        <li><strong>故障预测维护</strong>：AI 通过监测火箭运行数据，提前预判发动机异常，保障发射安全。</li>
+        <li><strong>实验数据分析</strong>：在课堂上，AI 也能帮你快速从一堆实验记录中找出趋势、识别异常数据，让你把更多时间用在"思考为什么"上。</li>
+      </ul>
+    </div>
+
+    <div class="ai-sect">
+      <h4>6. AI 技术前沿动态（了解趋势）</h4>
+      <p>AI 正快速发展，熟悉"从哪里看"很重要。以下是常用、可信的动态来源（可用浏览器在线访问）：</p>
+      <ul>
+        <li><strong>国内</strong>：人民网、新华网的"人工智能"专题；中国人工智能产业发展联盟（AIIA）资讯。</li>
+        <li><strong>国际</strong>：OpenAI、Google DeepMind、微软研究院的官方博客与官方公众号。</li>
+        <li><strong>科普</strong>：B 站、腾讯课堂/网易公开课上的 AI 科普课程（适合初学者）。</li>
+        <li><strong>课堂建议</strong>：可组织"每周一则 AI 新事"分享，每位同学轮流介绍一条行业动态，既锻炼表达，也保持对技术前沿的敏感。</li>
+      </ul>
+      <p><small>本软件为离线单文件，为保持离线可用，前沿动态采用"订阅入口指引"方式呈现，请在联网设备的浏览器中访问上述链接获取持续更新的信息。</small></p>
+    </div>
+
+    <div class="ai-sect">
+      <h4>7. 自查小测（评估要点）</h4>
+      <ol>
+        <li>机器学习解决问题的"配方"是什么？（数据→算法→预测/决策）</li>
+        <li>深度学习与机器学习是什么关系？（深度学习⊂机器学习）</li>
+        <li>自然语言处理主要处理什么？（文字与语言理解）</li>
+        <li>一条好的 AI 提示词通常包含哪几部分？（角色、任务、依据、输出）</li>
+        <li>AI 能在水火箭课题中帮你做哪些事？（预测、寻优、数据分析等）</li>
+      </ol>
+    </div>
+    <button class="btn btn-blue mbtn" data-close="modalAI">明白了，回到实验</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 常量 ================= */
+  var P_ATM = 101325, RHO_W = 1000, RHO_AIR = 1.225, GAMMA = 1.4, G = 9.81;
+  var DP_PUMP = 50000;            // 每次打气增加的表压 (Pa) = 0.05 MPa = 0.5 atm
+  var MAX_PUMP = 15;
+  var GATE1 = 2.0, GATE2 = 2.8;   // 光电门位置 (m)
+  var DRAG_K = 0.5 * 1.225 * 0.4 * 0.0079; // 0.5·ρ·C_d·A 前端迎风面积近似
+  var BOTTLE_VOL = 1.5;           // 瓶容积 (L)
+  var TRACK_MAX = 10;             // 水平轨道可视范围 (m)
+
+  /* ================= DOM 引用 ================= */
+  function $(id) { return document.getElementById(id); }
+  var el = {
+    slWater: $('slWater'), slPump: $('slPump'), slMass: $('slMass'),
+    slNozzle: $('slNozzle'), slEff: $('slEff'),
+    valWater: $('valWater'), valPump: $('valPump'), valMass: $('valMass'),
+    valNozzle: $('valNozzle'), valEff: $('valEff'),
+    gauge: $('gaugeCv'), warnP: $('warnP'),
+    btnPump: $('btnPump'), btnVent: $('btnVent'),
+    btnLaunch: $('btnLaunch'), btnReset: $('btnReset'),
+    selSpeed: $('selSpeed'),
+    modeH: $('modeHorizontal'), modeV: $('modeVertical'),
+    main: $('mainCv'), chart: $('chartCv'),
+    liveT: $('liveT'), liveV: $('liveV'), liveF: $('liveF'), liveWater: $('liveWater'),
+    dV: $('dV'), dDt: $('dDt'), dI: $('dI'), dFavg: $('dFavg'),
+    dHDiv: $('dHDiv'), dH: $('dH'), dNote: $('dNote'),
+    stepBar: $('stepBar'), stepList: $('stepList'), stepHint: $('stepHint'),
+    recBody: $('recBody'), btnClearRec: $('btnClearRec'),
+    btnTheory: $('btnTheory'), btnHelp: $('btnHelp'),
+    btnAI: $('btnAI'), modalAI: $('modalAI'),
+    aiOut: $('aiOut'),
+    btnAiPredict: $('btnAiPredict'), btnAiAnalyze: $('btnAiAnalyze'),
+    btnAiOpt: $('btnAiOpt'), btnAiPrompt: $('btnAiPrompt'),
+    modalTheory: $('modalTheory'), modalHelp: $('modalHelp')
+  };
+
+  /* ================= 应用状态 ================= */
+  var state = {
+    mode: 'horizontal',
+    playing: false,
+    playT: 0,
+    sim: null,          // 最近一次仿真结果
+    lastSim: null,      // 用于图表
+    records: loadRecords(),
+    paramsChanged: false,
+    theoryViewed: false,
+    helpViewed: false,
+    aiViewed: false,
+    launchCount: 0,
+    chartTab: 'vt',
+    chartsViewed: { vt: false, ft: false, bars: false }
+  };
+  var particles = [];
+
+  function getCfg() {
+    return {
+      volumeL: BOTTLE_VOL,
+      waterML: +el.slWater.value,
+      pumpCount: +el.slPump.value,
+      dryMassG: +el.slMass.value,
+      nozzleDiaMM: +el.slNozzle.value,
+      eff: +el.slEff.value,
+      friction: 0.02
+    };
+  }
+
+  /* ================= 物理引擎 ================= */
+  function simulateLaunch(cfg, mode) {
+    var Vb = cfg.volumeL * 1e-3;                    // 瓶容积 m³
+    var Vw = cfg.waterML * 1e-6;                    // 水体积 m³
+    var A = Math.PI * Math.pow(cfg.nozzleDiaMM / 1000, 2) / 4; // 喷嘴面积 m²
+    var mDry = cfg.dryMassG / 1000;
+    var eta = cfg.eff;
+    var Pg0 = cfg.pumpCount * DP_PUMP;              // 初始表压 Pa
+    var Vair0 = Vb - Vw;
+
+    var mWater = RHO_W * Vw;
+    var Pabs = P_ATM + Pg0;
+    var Pg = Pg0;
+    var v = 0, x = 0, h = 0, t = 0;
+    var phase = Vw > 1e-7 ? 'water' : 'air';
+    var mAir = phase === 'air' ? (Pabs / P_ATM * RHO_AIR) * Vb : 0;
+    var thrust = 0, mdot = 0;
+    var thrustIntegral = 0, tWater = 0;
+    var vPeak = 0, mAtPeak = 0;
+    var maxH = 0;
+    var waterRemainFlag = false;
+    var g1T = -1, g2T = -1, vG1 = 0, vG2 = 0;
+    var thrustOver = false, tThrustEnd = 0;
+    var lowThrust = 0;                  // 推力接近零的持续时长，用于判定喷气结束
+    var series = [];
+    var DT = 0.0005, maxT = 10.0;
+    var stepCount = 0;
+
+    while (t < maxT) {
+      var m = mDry + mWater;
+
+      if (phase === 'water') {
+        var ve = Math.sqrt(2 * Math.max(Pg, 0) / RHO_W);
+        mdot = eta * RHO_W * A * ve;
+        if (mdot > mWater / DT) mdot = mWater / DT;
+        thrust = mdot * ve;
+        mWater -= mdot * DT;
+        if (mWater <= 0) {
+          mWater = 0;
+          mAir = (Pabs / P_ATM * RHO_AIR) * Vb;
+          phase = 'air';
+          tWater = t + DT;
+        } else {
+          var Vair = Vb - mWater / RHO_W;
+          Pabs = (P_ATM + Pg0) * Math.pow(Vair0 / Vair, GAMMA);
+          Pg = Math.max(Pabs - P_ATM, 0);
+          if (Pg <= 0) { phase = 'done'; waterRemainFlag = true; }
+        }
+      } else if (phase === 'air') {
+        var rho = Pabs / P_ATM * RHO_AIR;
+        var veA = Math.sqrt(2 * Math.max(Pg, 0) / rho);
+        mdot = eta * rho * A * veA;
+        if (mdot > mAir / DT) mdot = mAir / DT;
+        thrust = mdot * veA;
+        mAir -= mdot * DT;
+        if (mAir <= 0) {
+          mAir = 0; Pabs = P_ATM; Pg = 0; phase = 'done';
+        } else {
+          Pabs = Math.max(P_ATM * (mAir / (RHO_AIR * Vb)), P_ATM);
+          Pg = Pabs - P_ATM;
+          if (Pg <= 1) { Pg = 0; phase = 'done'; }
+        }
+      } else {
+        thrust = 0; mdot = 0;
+      }
+
+      if (thrust < 1 && !thrustOver) { thrustOver = true; tThrustEnd = t; }
+      thrustIntegral += thrust * DT;
+
+      // 推力已接近零并持续一段时间 → 判定喷气结束（避免空气残压渐近导致无法结束）
+      if (phase !== 'done' && thrust < 1) {
+        lowThrust += DT;
+        if (lowThrust > 0.03) { phase = 'done'; thrust = 0; mdot = 0; }
+      } else if (thrust >= 1) {
+        lowThrust = 0;
+      }
+
+      var drag = DRAG_K * v * Math.abs(v);
+      var a;
+      if (mode === 'vertical') {
+        a = (thrust - m * G - drag) / m;
+        var prevV = v;
+        v += a * DT;
+        if (v < 0) v = 0;            // 重力使上抛速度归零，到达最高点
+        h += v * DT;
+        if (h > maxH) maxH = h;
+        if (phase === 'done' && v === 0 && prevV === 0) break; // 最高点后停止
+      } else {
+        var fric = cfg.friction * m * G;
+        a = (thrust - fric - drag) / m;
+        if (a < 0 && v <= 0) a = 0;
+        v += a * DT;
+        if (v < 0) v = 0;
+        x += v * DT;
+        if (phase === 'done' && thrustOver && t > tThrustEnd + 0.06) break; // 推力结束且越过光电门后
+      }
+
+      if (v > vPeak) { vPeak = v; mAtPeak = m; }
+      if (g1T < 0 && x >= GATE1) { g1T = t; vG1 = v; }
+      if (g2T < 0 && x >= GATE2) { g2T = t; vG2 = v; }
+
+      t += DT;
+      stepCount++;
+      if (stepCount % 2 === 0) {
+        series.push({ t: t, v: v, F: thrust, x: x, h: h, m: m, mdot: mdot, Pg: Pg });
+      }
+    }
+
+    if (tWater === 0) tWater = tThrustEnd;
+    var I = mAtPeak * vPeak;          // 火箭获得的冲量
+    var Favg = tWater > 0 ? I / tWater : 0;
+
+    return {
+      cfg: cfg, mode: mode,
+      vFinal: vPeak,
+      vGate: vG2 > 0 ? vG2 : vG1,
+      g1T: g1T, g2T: g2T, vG1: vG1, vG2: vG2,
+      tWater: tWater, tThrustEnd: tThrustEnd,
+      I: I, Favg: Favg,
+      thrustIntegral: thrustIntegral,
+      maxH: maxH,
+      waterRemainFlag: waterRemainFlag,
+      tEnd: t,
+      series: series
+    };
+  }
+
+  /* ================= 图表绘制 ================= */
+  function prepCanvas(cv) {
+    var dpr = window.devicePixelRatio || 1;
+    var W = cv.clientWidth || 600, H = cv.clientHeight || 200;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    return { ctx: ctx, W: W, H: H };
+  }
+
+  function emptyText(cv, msg) {
+    var p = prepCanvas(cv);
+    p.ctx.fillStyle = '#9ca3af';
+    p.ctx.font = '13px sans-serif';
+    p.ctx.textAlign = 'center';
+    p.ctx.fillText(msg, p.W / 2, p.H / 2);
+  }
+
+  function plotLines(cv, seriesList, opts, clipT) {
+    var p = prepCanvas(cv);
+    var ctx = p.ctx, W = p.W, H = p.H;
+    var padL = 46, padR = 14, padT = 18, padB = 28;
+    var pw = W - padL - padR, ph = H - padT - padB;
+
+    var tMax = 0, yMax = 0;
+    seriesList.forEach(function (s) {
+      (s.data || []).forEach(function (pt) {
+        if (clipT != null && pt[0] > clipT) return;
+        if (pt[0] > tMax) tMax = pt[0];
+        if (Math.abs(pt[1]) > yMax) yMax = Math.abs(pt[1]);
+      });
+    });
+    if (tMax <= 0) tMax = 1;
+    if (yMax <= 0) yMax = 1;
+    yMax = Math.ceil(yMax * 1.15 * 10) / 10;
+
+    // 网格
+    ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + ph - ph * g / 4;
+      ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W - padR, gy); ctx.stroke();
+      ctx.fillText((yMax * g / 4).toFixed(1), 30, gy + 3);
+    }
+    for (var gx = 0; gx <= 4; gx++) {
+      var gxx = padL + pw * gx / 4;
+      ctx.beginPath(); ctx.moveTo(gxx, padT); ctx.lineTo(gxx, H - padB); ctx.stroke();
+      ctx.fillText((tMax * gx / 4).toFixed(2), gxx, H - 12);
+    }
+    // 坐标轴
+    ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB); ctx.stroke();
+    // 轴标签
+    ctx.fillStyle = '#6b7280'; ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(opts.x, W / 2, H - 6);
+    ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center'; ctx.fillText(opts.y, 0, 0); ctx.restore();
+    // 图例与单位
+    ctx.textAlign = 'left'; ctx.fillText(opts.unit, padL + 2, 14);
+
+    // 曲线
+    seriesList.forEach(function (s) {
+      ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+      ctx.beginPath();
+      var started = false;
+      (s.data || []).forEach(function (pt) {
+        if (clipT != null && pt[0] > clipT) return;
+        var sx = padL + pt[0] / tMax * pw;
+        var sy = padT + ph - (Math.abs(pt[1]) / yMax) * ph;
+        if (!started) { ctx.moveTo(sx, sy); started = true; }
+        else ctx.lineTo(sx, sy);
+      });
+      ctx.stroke();
+    });
+    // 图例文字
+    var lx = padL + 60, ly = 14;
+    seriesList.forEach(function (s) {
+      ctx.fillStyle = s.color; ctx.fillRect(lx, ly - 8, 10, 3);
+      ctx.fillStyle = '#374151'; ctx.textAlign = 'left'; ctx.fillText(s.name, lx + 14, ly - 4);
+      lx += 14 + ctx.measureText(s.name).width + 18;
+    });
+  }
+
+  function drawBars(cv, items, yLabel, title) {
+    var p = prepCanvas(cv);
+    var ctx = p.ctx, W = p.W, H = p.H;
+    if (!items.length) { emptyText(cv, '暂无数据，请先完成至少一次实验'); return; }
+    var padL = 46, padR = 10, padT = 20, padB = 42;
+    var pw = W - padL - padR, ph = H - padT - padB;
+    var show = items.slice(-8);
+    var vMax = 0;
+    show.forEach(function (it) { if (it.value > vMax) vMax = it.value; });
+    if (vMax <= 0) vMax = 1;
+    vMax = Math.ceil(vMax * 1.15 * 10) / 10;
+
+    ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + ph - ph * g / 4;
+      ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W - padR, gy); ctx.stroke();
+      ctx.fillText((vMax * g / 4).toFixed(1), 32, gy + 3);
+    }
+    ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB); ctx.stroke();
+    ctx.fillStyle = '#6b7280'; ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(title || '', W / 2, H - 20);
+    ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yLabel, 0, 0); ctx.restore();
+
+    var bw = pw / show.length * 0.55;
+    var colors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd'];
+    show.forEach(function (it, i) {
+      var bh = it.value / vMax * ph;
+      var bx = padL + i * (pw / show.length) + (pw / show.length - bw) / 2;
+      var by = H - padB - bh;
+      ctx.fillStyle = colors[i % colors.length];
+      roundRect(ctx, bx, by, bw, bh, 4); ctx.fill();
+      ctx.fillStyle = '#1f2937'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(it.value.toFixed(2), bx + bw / 2, by - 4);
+      ctx.fillStyle = '#6b7280'; ctx.font = '10px sans-serif';
+      ctx.save(); ctx.translate(bx + bw / 2, H - padB + 8); ctx.rotate(Math.PI / 2);
+      ctx.fillText(it.label, 0, 0); ctx.restore();
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    if (h <= 0) { h = 0.01; }
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawChart() {
+    var tab = state.chartTab;
+    if (tab === 'bars') {
+      var items = state.records.map(function (r, i) {
+        var val = r.mode === 'vertical' ? r.maxH : r.I;
+        return { label: '#' + (state.records.length - i) + ' ' + r.water + 'mL×' + r.pump + '次', value: val };
+      });
+      drawBars(el.chart, items,
+        state.mode === 'vertical' ? '最大高度 h (m)' : '冲量 I (N·s)',
+        state.mode === 'vertical' ? '高度对比' : '冲量对比');
+      return;
+    }
+    if (!state.lastSim) { emptyText(el.chart, '暂无数据，请先发射一次'); return; }
+    var sim = state.lastSim;
+    var clipT = state.playing ? state.playT : null;
+    if (tab === 'vt') {
+      plotLines(el.chart,
+        [{ name: '速度 v', data: sim.series.map(function (s) { return [s.t, s.v]; }), color: '#2563eb' }],
+        { x: '时间 t (s)', y: '速度 v (m/s)', unit: 'v–t 图' }, clipT);
+    } else {
+      plotLines(el.chart,
+        [{ name: '推力 F', data: sim.series.map(function (s) { return [s.t, s.F]; }), color: '#ea580c' }],
+        { x: '时间 t (s)', y: '推力 F (N)', unit: 'F–t 图' }, clipT);
+    }
+  }
+
+  /* ================= 气压表 ================= */
+  function drawGauge() {
+    var cv = el.gauge;
+    var dpr = window.devicePixelRatio || 1;
+    var W = 260, H = 120;
+    cv.width = W * dpr; cv.height = H * dpr;
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    var cx = 130, cy = 108, r = 82;
+    var atm = +el.slPump.value * 0.5;
+    var maxA = 8;
+
+    // 刻度弧
+    ctx.lineWidth = 10; ctx.lineCap = 'round';
+    var segs = [[0, 4, '#16a34a'], [4, 6, '#f59e0b'], [6, 8, '#dc2626']];
+    segs.forEach(function (seg) {
+      ctx.strokeStyle = seg[2];
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, Math.PI + seg[0] / maxA * Math.PI, Math.PI + seg[1] / maxA * Math.PI);
+      ctx.stroke();
+    });
+    // 刻度线
+    ctx.lineWidth = 1; ctx.strokeStyle = '#6b7280'; ctx.fillStyle = '#6b7280';
+    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    for (var i = 0; i <= maxA; i++) {
+      var ang = Math.PI + i / maxA * Math.PI;
+      var x1 = cx + (r - 4) * Math.cos(ang), y1 = cy + (r - 4) * Math.sin(ang);
+      var x2 = cx + (r - 12) * Math.cos(ang), y2 = cy + (r - 12) * Math.sin(ang);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.fillText(i, cx + (r - 24) * Math.cos(ang), cy + (r - 24) * Math.sin(ang) + 3);
+    }
+    // 指针
+    var a = Math.min(Math.max(atm, 0), maxA) / maxA;
+    var ang = Math.PI + a * Math.PI;
+    ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + (r - 20) * Math.cos(ang), cy + (r - 20) * Math.sin(ang));
+    ctx.stroke();
+    ctx.fillStyle = '#1d4ed8';
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+    // 数值
+    ctx.fillStyle = '#1f2937'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('气压 ' + atm.toFixed(1) + ' atm', cx, 24);
+  }
+
+  /* ================= 主实验区绘制 ================= */
+  function idleSample() {
+    var cfg = getCfg();
+    var mDry = cfg.dryMassG / 1000;
+    var waterKg = RHO_W * cfg.waterML * 1e-6;
+    return { t: 0, v: 0, F: 0, x: 0.3, h: 0, m: mDry + waterKg, mdot: 0, Pg: cfg.pumpCount * DP_PUMP };
+  }
+
+  function sampleAt(sim, t) {
+    var s = sim.series;
+    if (!s || !s.length) return null;
+    if (t <= s[0].t) return s[0];
+    if (t >= s[s.length - 1].t) return s[s.length - 1];
+    var lo = 0, hi = s.length - 1;
+    while (hi - lo > 1) { var mid = (hi + lo) >> 1; if (s[mid].t <= t) lo = mid; else hi = mid; }
+    var a = s[lo], b = s[hi], f = (t - a.t) / (b.t - a.t + 1e-9);
+    return {
+      t: t, v: a.v + (b.v - a.v) * f, F: a.F + (b.F - a.F) * f,
+      x: a.x + (b.x - a.x) * f, h: a.h + (b.h - a.h) * f,
+      m: a.m + (b.m - a.m) * f, mdot: a.mdot + (b.mdot - a.mdot) * f,
+      Pg: a.Pg + (b.Pg - a.Pg) * f
+    };
+  }
+
+  function draw() {
+    var p = prepCanvas(el.main);
+    if (state.mode === 'horizontal') drawH(p); else drawV(p);
+  }
+
+  /* ---- 水平轨道模式 ---- */
+  function drawH(p) {
+    var ctx = p.ctx, W = p.W, H = p.H;
+    // 背景
+    var sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#bfdbfe'); sky.addColorStop(0.6, '#dbeafe'); sky.addColorStop(1, '#eff6ff');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#d6e4f0';
+    ctx.fillRect(0, H * 0.74, W, H * 0.26);
+
+    var pxPerM = (W - 110) / TRACK_MAX;
+    var x0 = 55;
+    var trackY = H * 0.74;
+
+    // 轨道
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(20, trackY); ctx.lineTo(W - 20, trackY); ctx.stroke();
+    ctx.lineWidth = 1;
+    for (var i = 0; i <= TRACK_MAX; i++) {
+      var tx = x0 + i * pxPerM;
+      ctx.beginPath(); ctx.moveTo(tx, trackY); ctx.lineTo(tx, trackY + 10); ctx.stroke();
+      ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(i + 'm', tx, trackY + 22);
+    }
+    // 发射台
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(x0 + 0.3 * pxPerM - 12, trackY - 22, 24, 16);
+    ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif';
+    ctx.fillText('发射台', x0 + 0.3 * pxPerM, trackY - 26);
+
+    // 光电门
+    [GATE1, GATE2].forEach(function (gx, gi) {
+      var gxPx = x0 + gx * pxPerM;
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(gxPx, trackY - 52); ctx.lineTo(gxPx, trackY); ctx.stroke();
+      ctx.strokeStyle = '#94a3b8'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(gxPx, trackY - 44); ctx.lineTo(gxPx, trackY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#475569'; ctx.fillRect(gxPx - 5, trackY - 56, 10, 6);
+      var gT = state.sim ? (gi === 0 ? state.sim.g1T : state.sim.g2T) : -1;
+      var passed = !!(gT >= 0 && state.playT >= gT);
+      ctx.fillStyle = passed ? '#16a34a' : '#cbd5e1';
+      ctx.beginPath(); ctx.arc(gxPx, trackY - 46, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#475569'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('光电门' + (gi + 1), gxPx, trackY - 62);
+      if (passed) {
+        var vg = gi === 0 ? state.sim.vG1 : state.sim.vG2;
+        ctx.fillStyle = '#16a34a';
+        ctx.fillText('v=' + vg.toFixed(1) + 'm/s', gxPx, trackY - 70);
+      }
+    });
+
+    // 火箭
+    var s = state.sim ? sampleAt(state.sim, state.playT) : idleSample();
+    var xPx = x0 + s.x * pxPerM;
+    if (xPx > -60 && xPx < W + 60) {
+      drawBottleH(ctx, xPx, trackY, s);
+    }
+    // 喷水粒子
+    if (state.sim && s.mdot > 0.005 && xPx < W + 60) {
+      spawnSpray(ctx, xPx, trackY - 10, s, 'left', pxPerM);
+    }
+    updateParticles(ctx);
+
+    // 时间
+    ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('t = ' + (state.playing ? state.playT.toFixed(2) : '0.00') + ' s', 14, 20);
+    if (state.sim && state.playT >= state.sim.tEnd - 0.001) {
+      ctx.fillStyle = '#16a34a';
+      ctx.fillText('发射完成：v = ' + state.sim.vFinal.toFixed(1) + ' m/s，I = ' + state.sim.I.toFixed(2) + ' N·s', W - 16, 20);
+    }
+  }
+
+  function drawBottleH(ctx, cx, cy, s) {
+    var cfg = getCfg();
+    var mDry = cfg.dryMassG / 1000;
+    var waterKg = Math.max(0, s.m - mDry);
+    var fillFrac = Math.min(0.9, waterKg / (RHO_W * BOTTLE_VOL * 1e-3));
+    var airAlpha = Math.min(1, Math.max(0.06, s.Pg / (MAX_PUMP * DP_PUMP)));
+
+    var w = 46, h = 18, bx = cx - w / 2, by = cy - 6 - h; // 底部在 trackY-6
+    // 车轮
+    ctx.fillStyle = '#475569';
+    ctx.beginPath(); ctx.arc(bx + 9, cy - 5, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx + w - 9, cy - 5, 3.5, 0, Math.PI * 2); ctx.fill();
+    // 瓶身
+    ctx.save();
+    roundRect(ctx, bx, by, w, h, 5);
+    ctx.clip();
+    // 水
+    ctx.fillStyle = '#3b82f6';
+    var wh = h * fillFrac;
+    ctx.fillRect(bx, by + h - wh, w, wh);
+    // 空气着色
+    ctx.fillStyle = 'rgba(191,219,254,' + (0.12 + airAlpha * 0.4).toFixed(2) + ')';
+    ctx.fillRect(bx, by, w, h - wh);
+    ctx.restore();
+    // 瓶身轮廓
+    ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, w, h, 5); ctx.stroke();
+    // 瓶颈与喷嘴
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(bx - 8, cy - 6 - 3, 8, 6);
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(bx - 11, cy - 6 - 1.5, 4, 3);
+    // 气压标签
+    ctx.fillStyle = 'rgba(30,64,175,0.75)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText((s.Pg / 100000).toFixed(1) + 'MPa', cx, by - 4);
+  }
+
+  /* ---- 竖直发射模式 ---- */
+  function drawV(p) {
+    var ctx = p.ctx, W = p.W, H = p.H;
+    var sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#7dd3fc'); sky.addColorStop(0.7, '#e0f2fe'); sky.addColorStop(1, '#f0f9ff');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+    var groundY = H - 26;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(0, groundY, W, 26);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('地面', 10, groundY + 16);
+
+    var sim = state.sim;
+    var maxH = sim ? Math.max(sim.maxH, 0.1) : 30;
+    var scale = (H - 110) / (Math.max(30, maxH) * 1.2);
+    var s = sim ? sampleAt(sim, state.playT) : idleSample();
+    var rocketY = groundY - s.h * scale;
+
+    // 轨迹
+    if (sim) {
+      ctx.strokeStyle = 'rgba(37,99,235,0.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      var drawn = false;
+      sim.series.forEach(function (pt) {
+        var py = groundY - pt.h * scale;
+        if (!drawn) { ctx.moveTo(W / 2, py); drawn = true; }
+        else ctx.lineTo(W / 2, py);
+      });
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    // 最高点虚线
+    if (sim && state.playT >= sim.tEnd - 0.001) {
+      var hy = groundY - sim.maxH * scale;
+      ctx.strokeStyle = 'rgba(220,38,38,0.6)'; ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(20, hy); ctx.lineTo(W - 20, hy); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#dc2626'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('最高点 h = ' + sim.maxH.toFixed(1) + ' m', 24, hy - 6);
+    }
+    // 标尺
+    var step = maxH <= 30 ? 5 : 10;
+    for (var hh = 0; hh <= maxH + 1; hh += step) {
+      var ry = groundY - hh * scale;
+      ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(W - 20, ry); ctx.lineTo(W - 10, ry); ctx.stroke();
+      ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(hh + 'm', W - 18, ry + 3);
+    }
+
+    // 火箭
+    if (rocketY < H && rocketY > -80) {
+      drawBottleV(ctx, W / 2, rocketY, s);
+      if (sim && s.mdot > 0.005) spawnSpray(ctx, W / 2, rocketY + 20, s, 'down', scale);
+    }
+    updateParticles(ctx);
+
+    ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('t = ' + (state.playing ? state.playT.toFixed(2) : '0.00') + ' s', 14, 20);
+    ctx.fillText('h = ' + s.h.toFixed(1) + ' m', 14, 38);
+    if (sim && state.playT >= sim.tEnd - 0.001) {
+      ctx.fillStyle = '#16a34a';
+      ctx.fillText('发射完成：最大高度 h = ' + sim.maxH.toFixed(1) + ' m', W - 16, 20);
+    }
+  }
+
+  function drawBottleV(ctx, cx, cy, s) {
+    var cfg = getCfg();
+    var mDry = cfg.dryMassG / 1000;
+    var waterKg = Math.max(0, s.m - mDry);
+    var fillFrac = Math.min(0.9, waterKg / (RHO_W * BOTTLE_VOL * 1e-3));
+    var airAlpha = Math.min(1, Math.max(0.06, s.Pg / (MAX_PUMP * DP_PUMP)));
+
+    var w = 18, h = 46, bx = cx - w / 2, by = cy - h / 2;
+    // 尾翼
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath(); ctx.moveTo(bx - 4, by + h - 10); ctx.lineTo(bx - 16, by + h - 2); ctx.lineTo(bx, by + h - 4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx + w + 4, by + h - 10); ctx.lineTo(bx + w + 16, by + h - 2); ctx.lineTo(bx + w, by + h - 4); ctx.closePath(); ctx.fill();
+    // 瓶身
+    ctx.save();
+    roundRect(ctx, bx, by, w, h, 5); ctx.clip();
+    ctx.fillStyle = '#3b82f6';
+    var wh = h * fillFrac;
+    ctx.fillRect(bx, by + h - wh, w, wh);
+    ctx.fillStyle = 'rgba(191,219,254,' + (0.12 + airAlpha * 0.4).toFixed(2) + ')';
+    ctx.fillRect(bx, by, w, h - wh);
+    ctx.restore();
+    ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, w, h, 5); ctx.stroke();
+    // 喷嘴
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(cx - 3, by + h, 6, 5);
+  }
+
+  /* ================= 粒子系统（水花） ================= */
+  function spawnSpray(ctx, x, y, s, dir, pxPerM) {
+    var n = Math.min(50, Math.max(2, Math.round(s.mdot * 10)));
+    var speed = Math.sqrt(2 * Math.max(s.Pg, 0) / RHO_W); // 喷出速度 m/s
+    var spd = speed * pxPerM * 0.9;
+    for (var i = 0; i < n; i++) {
+      var ang = dir === 'left' ? Math.PI + (Math.random() - 0.5) * 0.6 : Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+      particles.push({
+        x: x, y: y,
+        vx: Math.cos(ang) * spd * (0.6 + Math.random() * 0.7),
+        vy: Math.sin(ang) * spd * (0.6 + Math.random() * 0.7),
+        life: 0.18 + Math.random() * 0.2, maxLife: 0.3,
+        size: 1.5 + Math.random() * 1.6
+      });
+    }
+    if (particles.length > 600) particles.splice(0, particles.length - 600);
+  }
+
+  function updateParticles(ctx) {
+    var dt = Math.min(lastFrameDt || 0.016, 0.05);
+    ctx.fillStyle = 'rgba(125,211,252,0.85)';
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += 500 * dt;
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* ================= 步骤引导 ================= */
+  // 完整实验流程：原理认识 → 装置与参数 → 现象观察 → 定量探究 → 图表分析 → 挑战与结论
+  var STEPS = [
+    { t: '阅读"理论知识"，了解反冲与冲量原理', done: function () { return state.theoryViewed; } },
+    { t: '浏览"使用说明"，认识实验装置（轨道、光电门）', done: function () { return state.helpViewed; } },
+    { t: '调节实验参数（水量、打气次数等），观察气压表变化', done: function () { return state.paramsChanged; } },
+    { t: '点击"充气"，给水火箭充气', done: function () { return +el.slPump.value > 0; } },
+    { t: '点击"发射"，观察喷水与反冲运动', done: function () { return state.launchCount >= 1; } },
+    { t: '固定水量，改变打气次数，完成至少 3 组定量实验', done: function () { return state.records.length >= 3; } },
+    { t: '查看 v–t 图与 F–t 图，分析速度与推力变化', done: function () { return state.chartsViewed.vt && state.chartsViewed.ft; } },
+    { t: '打开对比柱状图，总结"气压越大，冲量越大"', done: function () { return state.chartsViewed.bars; } },
+    { t: '固定打气次数，改变水量，寻找冲量最大的"最佳水量"', done: function () { return state.records.length >= 5; } },
+    { t: '切换"竖直发射挑战"，比一比谁飞得最高', done: function () { return state.records.some(function (r) { return r.mode === 'vertical'; }); } },
+    { t: '完成结论：冲量与哪些因素有关，与同学分享', done: function () { return state.records.length >= 6 && state.chartsViewed.bars; } }
+  ];
+
+  function updateSteps() {
+    var doneCount = 0;
+    var html = '';
+    STEPS.forEach(function (st, i) {
+      var isDone = st.done();
+      if (isDone) doneCount++;
+      var cls = isDone ? 'done' : (doneCount === i && !isDone ? 'active' : '');
+      html += '<div class="step ' + cls + '"><span class="n">' + (i + 1) + '</span><span class="t">' + st.t + '</span></div>';
+    });
+    el.stepList.innerHTML = html;
+    el.stepBar.style.width = (doneCount / STEPS.length * 100) + '%';
+    var cur = STEPS.findIndex(function (st) { return !st.done(); });
+    el.stepHint.textContent = cur >= 0 ? '下一步：' + STEPS[cur].t : '全部完成！你已经是一名小小火箭工程师了。';
+  }
+
+  /* ================= 数据面板与记录 ================= */
+  function updateDataPanel(r) {
+    el.dV.textContent = r.vFinal.toFixed(1) + ' m/s';
+    el.dDt.textContent = r.tWater.toFixed(3) + ' s';
+    el.dI.textContent = r.I.toFixed(2) + ' N·s';
+    el.dFavg.textContent = r.Favg.toFixed(1) + ' N';
+    el.dHDiv.style.display = r.mode === 'vertical' ? '' : 'none';
+    if (r.mode === 'vertical') el.dH.textContent = r.maxH.toFixed(1) + ' m';
+    var extra = '';
+    if (r.waterRemainFlag) extra = '<br><span style="color:#dc2626">提示：水量过多，水未全部喷出，请减少水量。</span>';
+    el.dNote.innerHTML = '实验完成：I = m·v = ' + r.cfg.dryMassG + ' g × ' + r.vFinal.toFixed(1) + ' m/s ≈ ' + r.I.toFixed(2) + ' N·s' + extra;
+  }
+
+  function makeRecord(r) {
+    return {
+      mode: r.mode,
+      water: r.cfg.waterML,
+      pump: r.cfg.pumpCount,
+      atm: +(r.cfg.pumpCount * 0.5).toFixed(1),
+      v: r.vFinal,
+      I: r.I,
+      Favg: r.Favg,
+      maxH: r.maxH
+    };
+  }
+
+  function renderRecords() {
+    el.recBody.innerHTML = '';
+    state.records.forEach(function (r, i) {
+      var tr = document.createElement('tr');
+      if (i === 0) tr.className = 'new';
+      tr.innerHTML =
+        '<td>' + (state.records.length - i) + '</td>' +
+        '<td>' + r.water + '</td><td>' + r.pump + '</td><td>' + r.atm + '</td>' +
+        '<td>' + r.v.toFixed(1) + '</td><td>' + r.I.toFixed(2) + '</td><td>' + r.Favg.toFixed(1) + '</td>' +
+        '<td>' + (r.mode === 'vertical' ? r.maxH.toFixed(1) : '-') + '</td>';
+      el.recBody.appendChild(tr);
+    });
+  }
+
+  function loadRecords() {
+    try { return JSON.parse(localStorage.getItem('wrl_records_v1') || '[]'); } catch (e) { return []; }
+  }
+  function saveRecords() {
+    try { localStorage.setItem('wrl_records_v1', JSON.stringify(state.records.slice(0, 50))); } catch (e) {}
+  }
+
+  /* ================= AI 实验助手 ================= */
+  // 最小二乘线性回归：从 (x, y) 数据中"学习" y = a + b·x 的规律
+  function linReg(pts) {
+    var n = pts.length;
+    if (n < 2) return null;
+    var sx = 0, sy = 0, sxx = 0, sxy = 0;
+    pts.forEach(function (p) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; });
+    var den = n * sxx - sx * sx;
+    if (Math.abs(den) < 1e-9) return null;
+    var b = (n * sxy - sx * sy) / den;
+    var a = (sy - b * sx) / n;
+    // 相关系数 r，衡量拟合好坏
+    var ssy = 0, sy2 = 0;
+    pts.forEach(function (p) { ssy += p[1]; sy2 += p[1] * p[1]; });
+    var r = 0;
+    var den2 = Math.sqrt((n * sxx - sx * sx) * (n * sy2 - ssy * ssy));
+    if (den2 > 1e-9) r = (n * sxy - sx * sy) / den2;
+    return { a: a, b: b, r: r, predict: function (x) { return a + b * x; } };
+  }
+
+  function horizontalRecords() {
+    return state.records.filter(function (r) { return r.mode === 'horizontal'; });
+  }
+
+  // 预测本次发射的冲量（用已有记录学习 I 与打气次数、水量的关系）
+  function aiPredict() {
+    var recs = horizontalRecords();
+    if (recs.length < 3) {
+      el.aiOut.innerHTML = '<span class="t">数据还不够，我学不出来 😅</span><br>想让我"预测"，请先在水平轨道模式下完成至少 3 组实验。<br><small>这就是机器学习的"训练数据"——数据越多，预测越准。</small>';
+      return;
+    }
+    var cfg = getCfg();
+    var curW = cfg.waterML, curP = cfg.pumpCount;
+    // 用同一水量下的打气次数样本做预测（I 随气压近似线性）
+    var sameW = recs.filter(function (r) { return r.water === curW; });
+    var model = null;
+    if (sameW.length >= 3) model = linReg(sameW.map(function (r) { return [r.pump, r.I]; }));
+    if (!model || Math.abs(model.b) < 1e-9) {
+      // 回退：用全体样本、按水量缩放估计
+      var allP = linReg(recs.map(function (r) { return [r.pump, r.I]; }));
+      model = allP;
+    }
+    if (!model) {
+      el.aiOut.innerHTML = '<span class="t">样本太特殊，暂时无法预测</span><br>试试用同一水量、不同打气次数多做几次实验。';
+      return;
+    }
+    var pred = model.predict(curP);
+    pred = Math.max(0, pred);
+    var conf = Math.abs(model.r) > 0.9 ? '高' : (Math.abs(model.r) > 0.6 ? '中' : '低');
+    el.aiOut.innerHTML =
+      '<span class="t">🤖 机器学习预测结果</span><br>' +
+      '当前参数：水量 ' + curW + ' mL，打气 ' + curP + ' 次<br>' +
+      '模型：I ≈ ' + model.a.toFixed(2) + (model.b >= 0 ? ' + ' : ' - ') + Math.abs(model.b).toFixed(3) + ' × 打气次数（线性回归拟合）<br>' +
+      '预测冲量 I ≈ <b>' + pred.toFixed(2) + ' N·s</b>（置信度：' + conf + '）<br>' +
+      '拟合相关系数 |r| = ' + Math.abs(model.r).toFixed(2) + '，越接近 1 表示规律越明显。<br>' +
+      '<small>点击"发射"跑一次真实仿真，看看 AI 预测准不准！</small>';
+  }
+
+  // 智能分析实验记录：趋势、最佳水量、异常点
+  function aiAnalyze() {
+    var recs = horizontalRecords();
+    if (recs.length < 3) {
+      el.aiOut.innerHTML = '<span class="t">分析需要数据</span><br>请先完成至少 3 组水平轨道实验。<br><small>AI 的分析能力来自你的实验记录。</small>';
+      return;
+    }
+    var lines = ['<span class="t">📊 智能数据分析报告</span>'];
+    lines.push('共分析 ' + recs.length + ' 组水平实验记录。');
+
+    // 1) 趋势：I 与打气次数
+    var byPump = {};
+    recs.forEach(function (r) {
+      (byPump[r.pump] = byPump[r.pump] || []).push(r.I);
+    });
+    var pumpPts = Object.keys(byPump).map(function (p) {
+      var arr = byPump[p];
+      return [+p, arr.reduce(function (s, v) { return s + v; }, 0) / arr.length];
+    }).sort(function (a, b) { return a[0] - b[0]; });
+    var mP = pumpPts.length >= 3 ? linReg(pumpPts) : null;
+    if (mP && Math.abs(mP.b) > 1e-9) {
+      var trend = mP.b > 0 ? '正相关' : '负相关';
+      lines.push('【趋势】打气次数与冲量呈 <b>' + trend + '</b>（每多打 1 次约变化 ' + Math.abs(mP.b).toFixed(2) + ' N·s，|r|=' + Math.abs(mP.r).toFixed(2) + '）。' +
+        (mP.b > 0 ? '说明气压越大，冲量越大。' : ''));
+    } else {
+      lines.push('【趋势】打气次数样本不足，建议固定水量、改变打气次数多做几组。');
+    }
+
+    // 2) 最佳水量
+    var byWater = {};
+    recs.forEach(function (r) {
+      (byWater[r.water] = byWater[r.water] || []).push(r.I);
+    });
+    var waterAvg = Object.keys(byWater).map(function (w) {
+      var arr = byWater[w];
+      return [+w, arr.reduce(function (s, v) { return s + v; }, 0) / arr.length];
+    });
+    waterAvg.sort(function (a, b) { return a[0] - b[0]; });
+    if (waterAvg.length >= 2) {
+      var best = waterAvg.reduce(function (mx, cur) { return cur[1] > mx[1] ? cur : mx; });
+      lines.push('【最优】在你试过的水量中，冲量最大的是 <b>' + best[0] + ' mL</b>（平均 I≈' + best[1].toFixed(2) + ' N·s）。');
+      if (waterAvg.length >= 3) {
+        // 判断是否出现"先升后降"（峰值）
+        var mid = waterAvg[Math.floor(waterAvg.length / 2)];
+        var rising = waterAvg[waterAvg.length - 1][1] > waterAvg[0][1];
+        if (best[0] !== waterAvg[waterAvg.length - 1][0] && best[0] !== waterAvg[0][0]) {
+          lines.push('数据出现了"中间高、两边低"的特征——这说明水量存在<b>最佳值</b>，这正是水火箭"水量约 1/3 瓶"规律的表现！');
+        } else if (rising) {
+          lines.push('目前冲量随水量单调上升，还没找到峰值，建议继续增大水量试试。');
+        }
+      }
+    }
+
+    // 3) 异常点识别（基于全体样本的 I~pump 回归残差）
+    var allPts = recs.map(function (r) { return [r.pump, r.I]; });
+    var mAll = linReg(allPts);
+    if (mAll) {
+      var sd = 0;
+      allPts.forEach(function (p) { var e = p[1] - mAll.predict(p[0]); sd += e * e; });
+      sd = Math.sqrt(sd / allPts.length);
+      var bad = [];
+      allPts.forEach(function (p, i) {
+        var e = Math.abs(p[1] - mAll.predict(p[0]));
+        if (sd > 1e-6 && e > 2.5 * sd) bad.push(i);
+      });
+      if (bad.length) {
+        lines.push('【异常】检测到 ' + bad.length + ' 个可疑数据点（偏离整体规律 >2.5 倍标准差）：' +
+          bad.map(function (i) { return '第' + (recs.length - i) + '组(水' + recs[i].water + 'mL×' + recs[i].pump + '次, I=' + recs[i].I.toFixed(2) + ')'; }).join('；') +
+          '。请检查：是否改变过其他参数？是否操作有误？');
+      } else {
+        lines.push('【异常】未发现明显异常数据，整体规律一致，实验操作很棒！');
+      }
+    }
+
+    lines.push('<small>这正是"数据 → 算法 → 决策"的完整过程：AI 只是做了你也能做的统计，但做得又快又全面。</small>');
+    el.aiOut.innerHTML = lines.join('<br>');
+  }
+
+  // 寻优：在当前范围内搜索使冲量最大的水量与打气次数组合
+  function aiOptimize() {
+    el.aiOut.innerHTML = '<span class="t">🔍 AI 正在网格搜索最优参数…</span><br>原理：把水量、打气次数在可行范围内逐格组合，调用物理引擎试算全部组合，选出冲量最大的那组——这就是"仿真驱动设计优化"。';
+    // 异步执行，避免阻塞界面
+    setTimeout(function () {
+      var best = null;
+      for (var w = 100; w <= 1200; w += 50) {
+        for (var p = 1; p <= 15; p++) {
+          var cfg = {
+            volumeL: BOTTLE_VOL, waterML: w, pumpCount: p,
+            dryMassG: +el.slMass.value, nozzleDiaMM: +el.slNozzle.value,
+            eff: +el.slEff.value, friction: 0.02
+          };
+          var r = simulateLaunch(cfg, 'horizontal');
+          if (!best || r.I > best.I) best = { w: w, p: p, I: r.I, v: r.vFinal, tWater: r.tWater };
+        }
+      }
+      el.aiOut.innerHTML =
+        '<span class="t">🎯 AI 寻优结果（共试算 24×15 = 360 组组合）</span><br>' +
+        '最优组合：水量 <b>' + best.w + ' mL</b>，打气 <b>' + best.p + ' 次</b><br>' +
+        '对应冲量 I ≈ <b>' + best.I.toFixed(2) + ' N·s</b>（末速度 v=' + best.v.toFixed(1) + ' m/s，喷水时间 ' + best.tWater.toFixed(3) + ' s）<br>' +
+        '<small>你可以把参数滑块调到这个组合，点"发射"验证 AI 的结论。再想想：为什么水量不是越多越好？（水越多瓶越重，还可能出现水未喷完）</small>';
+    }, 30);
+  }
+
+  // 提示词模板教学
+  function aiPrompt() {
+    var recs = horizontalRecords();
+    var sample = recs.slice(0, 5).map(function (r, i) {
+      return '第' + (recs.length - i) + '组：水量' + r.water + 'mL、打气' + r.pump + '次、冲量' + r.I.toFixed(2) + 'N·s';
+    }).join('；');
+    el.aiOut.innerHTML =
+      '<span class="t">💬 提示词工程示范（自然语言处理）</span><br>' +
+      '好提示词 = 角色 + 任务 + 依据 + 期望输出。<br>' +
+      '示例：<br>『你是火箭工程师。任务：根据下面的实验记录，找出冲量最大的水量，并说明原因。' +
+      (sample ? '依据：' + sample + '。' : '依据：我稍后给你实验数据。') +
+      '输出：给出推荐水量和一句结论。』<br>' +
+      '<small>现在主流的 AI 助手（如 DeepSeek、ChatGPT）都能理解这类问题。学会问对问题，是和 AI 协作的第一步。</small>';
+  }
+
+  /* ================= 发射控制 ================= */
+  function startLaunch() {
+    if (+el.slPump.value <= 0) {
+      el.stepHint.textContent = '请先点击"充气"给水火箭充气！';
+      flashHint();
+      return;
+    }
+    state.sim = simulateLaunch(getCfg(), state.mode);
+    state.lastSim = state.sim;
+    state.playT = 0;
+    state.playing = true;
+    state.launchCount++;
+    setButtons();
+  }
+
+  function finishLaunch() {
+    state.playing = false;
+    var r = state.sim;
+    state.records.unshift(makeRecord(r));
+    saveRecords();
+    renderRecords();
+    updateDataPanel(r);
+    state.chartsViewed[state.chartTab] = true;   // 查看过当前图表即可推进步骤
+    drawChart();
+    updateSteps();
+    setButtons();
+  }
+
+  function resetSim() {
+    state.playing = false;
+    state.sim = null;
+    state.playT = 0;
+    particles = [];
+    setButtons();
+    el.liveT.textContent = '0.00 s';
+    el.liveV.textContent = '0.0 m/s';
+    el.liveF.textContent = '0.0 N';
+    el.liveWater.textContent = el.slWater.value + ' mL';
+    draw();
+  }
+
+  function setButtons() {
+    var playing = state.playing;
+    el.btnLaunch.disabled = playing;
+    el.btnPump.disabled = playing;
+    el.btnVent.disabled = playing;
+    el.modeH.disabled = playing;
+    el.modeV.disabled = playing;
+    el.slWater.disabled = playing;
+    el.slPump.disabled = playing;
+    el.slMass.disabled = playing;
+    el.slNozzle.disabled = playing;
+    el.slEff.disabled = playing;
+  }
+
+  /* ================= 滑块同步 ================= */
+  function syncSliders() {
+    el.valWater.textContent = el.slWater.value + ' mL';
+    el.valPump.textContent = el.slPump.value + ' 次';
+    el.valMass.textContent = el.slMass.value + ' g';
+    el.valNozzle.textContent = (+el.slNozzle.value).toFixed(1) + ' mm';
+    el.valEff.textContent = (+el.slEff.value).toFixed(2);
+    el.warnP.style.display = +el.slPump.value > 12 ? 'block' : 'none';
+    drawGauge();
+  }
+
+  /* ================= 事件绑定 ================= */
+  function bindEvents() {
+    var sliderIds = ['slWater', 'slPump', 'slMass', 'slNozzle', 'slEff'];
+    sliderIds.forEach(function (id) {
+      el[id].addEventListener('input', function () {
+        state.paramsChanged = true;
+        syncSliders();
+        resetSim();
+        updateSteps();
+      });
+    });
+
+    el.btnPump.addEventListener('click', function () {
+      if (state.playing) return;
+      el.slPump.value = Math.min(MAX_PUMP, +el.slPump.value + 1);
+      state.paramsChanged = true;
+      syncSliders();
+      resetSim();
+      updateSteps();
+    });
+    el.btnVent.addEventListener('click', function () {
+      if (state.playing) return;
+      el.slPump.value = 0;
+      syncSliders();
+      resetSim();
+      updateSteps();
+    });
+
+    el.btnLaunch.addEventListener('click', startLaunch);
+    el.btnReset.addEventListener('click', resetSim);
+
+    el.modeH.addEventListener('click', function () { setMode('horizontal'); });
+    el.modeV.addEventListener('click', function () { setMode('vertical'); });
+
+    document.querySelectorAll('.tab').forEach(function (tb) {
+      tb.addEventListener('click', function () {
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        tb.classList.add('active');
+        state.chartTab = tb.getAttribute('data-chart');
+        state.chartsViewed[state.chartTab] = true;
+        drawChart();
+        updateSteps();
+      });
+    });
+
+    el.btnClearRec.addEventListener('click', function () {
+      state.records = [];
+      saveRecords();
+      renderRecords();
+      drawChart();
+      updateSteps();
+    });
+
+    el.btnTheory.addEventListener('click', function () {
+      state.theoryViewed = true;
+      openModal('modalTheory');
+      updateSteps();
+    });
+    el.btnHelp.addEventListener('click', function () {
+      state.helpViewed = true;
+      openModal('modalHelp');
+      updateSteps();
+    });
+
+    document.querySelectorAll('[data-close]').forEach(function (b) {
+      b.addEventListener('click', function () { closeModal(b.getAttribute('data-close')); });
+    });
+    document.querySelectorAll('.modal-overlay').forEach(function (ov) {
+      ov.addEventListener('click', function (e) { if (e.target === ov) ov.classList.remove('open'); });
+    });
+
+    window.addEventListener('resize', function () { draw(); drawChart(); });
+  }
+
+  function setMode(m) {
+    if (state.playing) return;
+    state.mode = m;
+    el.modeH.classList.toggle('active', m === 'horizontal');
+    el.modeV.classList.toggle('active', m === 'vertical');
+    resetSim();
+    drawChart();
+  }
+
+  function openModal(id) { $(id).classList.add('open'); }
+  function closeModal(id) { $(id).classList.remove('open'); }
+  var flashTimer = null;
+  function flashHint() {
+    if (flashTimer) clearTimeout(flashTimer);
+    el.stepHint.style.color = '#dc2626';
+    flashTimer = setTimeout(function () { el.stepHint.style.color = ''; }, 1500);
+  }
+
+  /* ================= 主循环 ================= */
+  var lastTs = 0, lastFrameDt = 0.016;
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    var dtFrame = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+    lastFrameDt = dtFrame;
+
+    if (state.playing && state.sim) {
+      var speed = +el.selSpeed.value;
+      state.playT += dtFrame * speed;
+      var s = sampleAt(state.sim, state.playT);
+      el.liveT.textContent = state.playT.toFixed(2) + ' s';
+      el.liveV.textContent = s.v.toFixed(1) + ' m/s';
+      el.liveF.textContent = s.F.toFixed(1) + ' N';
+      el.liveWater.textContent = Math.max(0, (s.m - state.sim.cfg.dryMassG / 1000) * 1000).toFixed(0) + ' mL';
+      if (state.playT >= state.sim.tEnd) finishLaunch();
+      drawChart();
+    }
+    draw();
+  }
+
+  /* ================= 初始化 ================= */
+  function init() {
+    bindEvents();
+    syncSliders();
+    renderRecords();
+    updateSteps();
+    drawChart();
+    draw();
+    requestAnimationFrame(function (ts) { lastTs = ts; requestAnimationFrame(frame); });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
